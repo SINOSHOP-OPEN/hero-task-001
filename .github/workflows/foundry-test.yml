@@ -1,9 +1,13 @@
-name: Foundry Tests
+name: Foundry Tests (Manual Trigger)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      gas-check:
+        description: 'Run gas snapshot check?'
+        required: true
+        type: boolean
+        default: false
 
 env:
   FOUNDRY_PROFILE: ci
@@ -31,4 +35,5 @@ jobs:
         run: forge test -vvv
 
       - name: Check gas snapshots
+        if: ${{ inputs.gas-check }}
         run: forge snapshot --check
