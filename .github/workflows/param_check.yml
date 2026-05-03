@@ -1,0 +1,35 @@
+name: Restricted Parameters Leak Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  scan-sensitive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for restricted parameter patterns
+        run: |
+          patterns=(
+            "natural_frequency\\s*=\\s*[0-9]+\\.[0-9]+"
+            "damping_ratio\\s*=\\s*[0-9]+\\.[0-9]+"
+            "tld_frequency_map\\s*=\\s*\\["
+            "anchor_stiffness_real\\s*=\\s*"
+            "ballast_volume_exact"
+          )
+          files=$(git diff --name-only origin/main...HEAD)
+          found=0
+          for pattern in "${patterns[@]}"; do
+            if grep -E "$pattern" $files; then
+              echo "::error::Sensitive pattern '$pattern' detected in PR."
+              found=1
+            fi
+          done
+          if [ $found -eq 1 ]; then
+            echo "Restricted parameters leakage detected. Request changes."
+            exit 1
+          fi
+          echo "No restricted parameters found."
